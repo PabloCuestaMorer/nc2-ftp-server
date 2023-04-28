@@ -10,9 +10,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 
 /**
  * @author Pablo Cuesta Morer
@@ -39,7 +41,7 @@ public class FtpServer2 {
 	public void start() {
 		try {
 			serverSocket = new ServerSocket(CONTROL_PORT);
-			System.out.println("FTP server started on port " + CONTROL_PORT);
+			System.out.println("FTP server started on "+ InetAddress.getLocalHost().getHostAddress() + " on port " + CONTROL_PORT);
 
 			while (true) {
 				controlSocket = serverSocket.accept();
@@ -73,10 +75,10 @@ public class FtpServer2 {
 					handleListCommand();
 					break;
 				case "RETR":
-					handleRetrCommand(commandParts[1]);
+//					handleRetrCommand(commandParts[1]);
 					break;
 				case "STOR":
-					handleStorCommand(commandParts[1]);
+//					handleStorCommand(commandParts[1]);
 					break;
 				case "QUIT":
 					handleQuitCommand();
@@ -99,8 +101,9 @@ public class FtpServer2 {
 			int clientPort = Integer.parseInt(hostPortParts[4]) * 256 + Integer.parseInt(hostPortParts[5]);
 
 			dataSocket = new Socket();
-//			dataSocket.bind(new InetSocketAddress(DATA_PORT));
-			dataSocket.connect(new InetSocketAddress(clientHost, DATA_PORT));
+			dataSocket.bind(new InetSocketAddress(DATA_PORT));
+			SocketAddress socketAddress = new InetSocketAddress(clientHost, clientPort);
+			dataSocket.connect(socketAddress);
 
 			dataInputStream = new DataInputStream(dataSocket.getInputStream());
 			dataOutputStream = new DataOutputStream(dataSocket.getOutputStream());
@@ -138,67 +141,67 @@ public class FtpServer2 {
 			closeDataConnection();
 		}
 	}
-
-	private void handleRetrCommand(String filename) {
-		if (dataSocket == null) {
-			sendControlResponse("503 Bad sequence of commands.");
-			return;
-		}
-
-		File file = new File(ROOT_DIRECTORY, filename);
-		if (!file.exists() || !file.isFile()) {
-			sendControlResponse("550 Requested action not taken. File unavailable (e.g., file not found, no access).");
-			return;
-		}
-
-		try {
-			sendControlResponse("150 File status okay; about to open data connection.");
-
-			byte[] buffer = new byte[8192];
-			int bytesRead;
-			try (FileInputStream fileInputStream = new FileInputStream(file)) {
-				while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-					dataOutputStream.write(buffer, 0, bytesRead);
-				}
-				dataOutputStream.flush();
-			}
-
-			sendControlResponse("226 Closing data connection. Requested file action successful.");
-		} catch (IOException e) {
-			System.err.println("Error sending file: " + e.getMessage());
-			sendControlResponse("451 Requested action aborted: local error in processing.");
-		} finally {
-			closeDataConnection();
-		}
-	}
-
-	private void handleStorCommand(String filename) {
-		if (dataSocket == null) {
-			sendControlResponse("503 Bad sequence of commands.");
-			return;
-		}
-
-		File file = new File(ROOT_DIRECTORY, filename);
-		try {
-			sendControlResponse("150 File status okay; about to open data connection.");
-
-			byte[] buffer = new byte[8192];
-			int bytesRead;
-			try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
-				while ((bytesRead = dataInputStream.read(buffer)) != -1) {
-					fileOutputStream.write(buffer, 0, bytesRead);
-				}
-				fileOutputStream.flush();
-			}
-
-			sendControlResponse("226 Closing data connection. Requested file action successful.");
-		} catch (IOException e) {
-			System.err.println("Error receiving file: " + e.getMessage());
-			sendControlResponse("451 Requested action aborted: local error in processing.");
-		} finally {
-			closeDataConnection();
-		}
-	}
+//
+//	private void handleRetrCommand(String filename) {
+//		if (dataSocket == null) {
+//			sendControlResponse("503 Bad sequence of commands.");
+//			return;
+//		}
+//
+//		File file = new File(ROOT_DIRECTORY, filename);
+//		if (!file.exists() || !file.isFile()) {
+//			sendControlResponse("550 Requested action not taken. File unavailable (e.g., file not found, no access).");
+//			return;
+//		}
+//
+//		try {
+//			sendControlResponse("150 File status okay; about to open data connection.");
+//
+//			byte[] buffer = new byte[8192];
+//			int bytesRead;
+//			try (FileInputStream fileInputStream = new FileInputStream(file)) {
+//				while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+//					dataOutputStream.write(buffer, 0, bytesRead);
+//				}
+//				dataOutputStream.flush();
+//			}
+//
+//			sendControlResponse("226 Closing data connection. Requested file action successful.");
+//		} catch (IOException e) {
+//			System.err.println("Error sending file: " + e.getMessage());
+//			sendControlResponse("451 Requested action aborted: local error in processing.");
+//		} finally {
+//			closeDataConnection();
+//		}
+//	}
+//
+//	private void handleStorCommand(String filename) {
+//		if (dataSocket == null) {
+//			sendControlResponse("503 Bad sequence of commands.");
+//			return;
+//		}
+//
+//		File file = new File(ROOT_DIRECTORY, filename);
+//		try {
+//			sendControlResponse("150 File status okay; about to open data connection.");
+//
+//			byte[] buffer = new byte[8192];
+//			int bytesRead;
+//			try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
+//				while ((bytesRead = dataInputStream.read(buffer)) != -1) {
+//					fileOutputStream.write(buffer, 0, bytesRead);
+//				}
+//				fileOutputStream.flush();
+//			}
+//
+//			sendControlResponse("226 Closing data connection. Requested file action successful.");
+//		} catch (IOException e) {
+//			System.err.println("Error receiving file: " + e.getMessage());
+//			sendControlResponse("451 Requested action aborted: local error in processing.");
+//		} finally {
+//			closeDataConnection();
+//		}
+//	}
 
 	private void handleQuitCommand() {
 		sendControlResponse("221 Service closing control connection.");

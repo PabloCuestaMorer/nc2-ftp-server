@@ -66,40 +66,40 @@ public class FtpClient2 {
 		return fileList.toString();
 	}
 
-	public void downloadFile(String remoteFilename, String localFilename) throws IOException {
-		setupDataConnection();
-		sendControlCommand("RETR " + remoteFilename);
-		readControlResponse();
-
-		try (FileOutputStream fos = new FileOutputStream(localFilename)) {
-			byte[] buffer = new byte[8192];
-			int bytesRead;
-			while ((bytesRead = dataInputStream.read(buffer)) != -1) {
-				fos.write(buffer, 0, bytesRead);
-			}
-		}
-
-		readControlResponse();
-		closeDataConnection();
-	}
-
-	public void uploadFile(String localFilename, String remoteFilename) throws IOException {
-		setupDataConnection();
-		sendControlCommand("STOR " + remoteFilename);
-		readControlResponse();
-
-		try (FileInputStream fis = new FileInputStream(localFilename)) {
-			byte[] buffer = new byte[8192];
-			int bytesRead;
-			while ((bytesRead = fis.read(buffer)) != -1) {
-				dataOutputStream.write(buffer, 0, bytesRead);
-			}
-			dataOutputStream.flush();
-		}
-
-		readControlResponse();
-		closeDataConnection();
-	}
+//	public void downloadFile(String remoteFilename, String localFilename) throws IOException {
+//		setupDataConnection();
+//		sendControlCommand("RETR " + remoteFilename);
+//		readControlResponse();
+//
+//		try (FileOutputStream fos = new FileOutputStream(localFilename)) {
+//			byte[] buffer = new byte[8192];
+//			int bytesRead;
+//			while ((bytesRead = dataInputStream.read(buffer)) != -1) {
+//				fos.write(buffer, 0, bytesRead);
+//			}
+//		}
+//
+//		readControlResponse();
+//		closeDataConnection();
+//	}
+//
+//	public void uploadFile(String localFilename, String remoteFilename) throws IOException {
+//		setupDataConnection();
+//		sendControlCommand("STOR " + remoteFilename);
+//		readControlResponse();
+//
+//		try (FileInputStream fis = new FileInputStream(localFilename)) {
+//			byte[] buffer = new byte[8192];
+//			int bytesRead;
+//			while ((bytesRead = fis.read(buffer)) != -1) {
+//				dataOutputStream.write(buffer, 0, bytesRead);
+//			}
+//			dataOutputStream.flush();
+//		}
+//
+//		readControlResponse();
+//		closeDataConnection();
+//	}
 
 	private void setupDataConnection() throws IOException {
 		int clientPort = findAvailablePort();
@@ -189,7 +189,7 @@ public class FtpClient2 {
 						System.out.println("Usage: download <remote_file> <local_file>");
 					} else {
 						System.out.println("Downloading " + parts[1]);
-						client.downloadFile(parts[1], parts[2]);
+//						client.downloadFile(parts[1], parts[2]);
 					}
 				} else if (command.startsWith("upload")) {
 					String[] parts = command.split(" ");
@@ -197,7 +197,7 @@ public class FtpClient2 {
 						System.out.println("Usage: upload <local_file> <remote_file>");
 					} else {
 						System.out.println("Uploading " + parts[1]);
-						client.uploadFile(parts[1], parts[2]);
+//						client.uploadFile(parts[1], parts[2]);
 					}
 				} else if (command.equals("QUIT")) {
 					break;
