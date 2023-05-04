@@ -1,0 +1,22 @@
+# Eclipse project files
+.settings/
+.classpath
+.project
+.metadata/
+
+# Compiled output
+bin/
+target/
+
+# Dependencies
+lib/
+*.jar
+
+# Logs and backups
+log/
+*.log
+*.bak
+
+# Other
+.DS_Store
+Thumbs.db
