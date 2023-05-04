@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -38,8 +39,10 @@ public class FtpServer2 {
 
 	public void start() {
 		try {
-			serverSocket = new ServerSocket(CONTROL_PORT);
-			System.out.println("FTP server started on port " + CONTROL_PORT);
+//            ServerSocket serverSocket = new ServerSocket(CONTROL_PORT);
+//            System.out.println("Server is listening on " + serverSocket.getInetAddress().getHostAddress() + ":" + CONTROL_PORT);
+			serverSocket = new ServerSocket(CONTROL_PORT, 0, InetAddress.getByName("192.168.42.11"));
+			System.out.println("FTP server started on " + InetAddress.getByName("192.168.42.11").getHostAddress() + " on port 21");
 
 			while (true) {
 				controlSocket = serverSocket.accept();
@@ -99,8 +102,8 @@ public class FtpServer2 {
 			int clientPort = Integer.parseInt(hostPortParts[4]) * 256 + Integer.parseInt(hostPortParts[5]);
 
 			dataSocket = new Socket();
-//			dataSocket.bind(new InetSocketAddress(DATA_PORT));
-			dataSocket.connect(new InetSocketAddress(clientHost, DATA_PORT));
+			dataSocket.bind(new InetSocketAddress(DATA_PORT));
+			dataSocket.connect(new InetSocketAddress(clientHost, clientPort));
 
 			dataInputStream = new DataInputStream(dataSocket.getInputStream());
 			dataOutputStream = new DataOutputStream(dataSocket.getOutputStream());
