@@ -7,13 +7,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 public class FtpClient {
 
 	private static final String SERVER_ADDRESS = "127.0.0.1";
 	private static final int CONTROL_PORT = 21;
+	private static final int DATA_PORT = 20;
 
 	public static void main(String[] args) throws IOException {
 		Socket controlSocket = new Socket(SERVER_ADDRESS, CONTROL_PORT);
@@ -22,8 +22,6 @@ public class FtpClient {
 		DataOutputStream dos = new DataOutputStream(controlSocket.getOutputStream());
 		BufferedReader br = new BufferedReader(new InputStreamReader(controlSocket.getInputStream()));
 		System.out.println(br.readLine());
-
-		int dataPort = 1025;
 
 		BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
 		boolean exit = false;
@@ -38,24 +36,22 @@ public class FtpClient {
 
 			switch (choice) {
 			case "1":
-				if (sendPortCommand(dos, br, dataPort)) {
-					listFiles(dos, br, ".", dataPort);
+				if (sendPortCommand(dos, br)) {
+					listFiles(dos, br, ".");
 				} else {
 					System.out.println("An error occurred while processing the PORT command.");
 				}
-				dataPort++;
 				break;
 			case "2":
 				System.out.print("Enter the file to download: ");
 				String sourcePath = consoleReader.readLine();
 				System.out.print("Enter the destination path: ");
 				String destPath = consoleReader.readLine();
-				if (sendPortCommand(dos, br, dataPort)) {
-					downloadFile(dos, br, sourcePath, destPath, dataPort);
+				if (sendPortCommand(dos, br)) {
+					downloadFile(dos, br, sourcePath, destPath);
 				} else {
 					System.out.println("An error occurred while processing the PORT command.");
 				}
-				dataPort++;
 				break;
 			case "3":
 				exit = true;
@@ -68,25 +64,23 @@ public class FtpClient {
 		controlSocket.close();
 	}
 
-	private static boolean sendPortCommand(DataOutputStream dos, BufferedReader br, int dataPort) throws IOException {
+	private static boolean sendPortCommand(DataOutputStream dos, BufferedReader br) throws IOException {
 		InetAddress localAddress = InetAddress.getLocalHost();
 		byte[] addressBytes = localAddress.getAddress();
 		String hostPort = String.format("%d,%d,%d,%d,%d,%d", addressBytes[0] & 0xFF, addressBytes[1] & 0xFF,
-				addressBytes[2] & 0xFF, addressBytes[3] & 0xFF, dataPort / 256, dataPort % 256);
+				addressBytes[2] & 0xFF, addressBytes[3] & 0xFF, DATA_PORT / 256, DATA_PORT % 256);
 		dos.writeBytes("PORT " + hostPort + "\r\n");
 		String response = br.readLine();
 		return response.startsWith("200");
 	}
 
-	private static void listFiles(DataOutputStream dos, BufferedReader br, String pathname, int dataPort)
-			throws IOException {
+	private static void listFiles(DataOutputStream dos, BufferedReader br, String pathname) throws IOException {
 		dos.writeBytes("LIST " + pathname + "\r\n");
 		String response = br.readLine();
 		System.out.println(response);
 
 		if (response.startsWith("150")) {
-			try (ServerSocket dataSocket = new ServerSocket(dataPort);
-					Socket dataClientSocket = dataSocket.accept();
+			try (Socket dataClientSocket = new Socket(SERVER_ADDRESS, DATA_PORT);
 					BufferedReader dataBr = new BufferedReader(
 							new InputStreamReader(dataClientSocket.getInputStream()))) {
 
@@ -101,18 +95,16 @@ public class FtpClient {
 		}
 	}
 
-	private static void downloadFile(DataOutputStream dos, BufferedReader br, String pathname, String destPath,
-			int dataPort) throws IOException {
+	private static void downloadFile(DataOutputStream dos, BufferedReader br, String pathname, String destPath)
+			throws IOException {
 		dos.writeBytes("RETR " + pathname + "\r\n");
 		String response = br.readLine();
 		System.out.println(response);
 
 		if (response.startsWith("150")) {
-			try {
-				ServerSocket dataSocket = new ServerSocket(dataPort);
-				Socket dataClientSocket = dataSocket.accept();
-				DataInputStream dataDis = new DataInputStream(dataClientSocket.getInputStream());
-				FileOutputStream fos = new FileOutputStream(destPath);
+			try (Socket dataClientSocket = new Socket(SERVER_ADDRESS, DATA_PORT);
+					DataInputStream dataDis = new DataInputStream(dataClientSocket.getInputStream());
+					FileOutputStream fos = new FileOutputStream(destPath)) {
 
 				byte[] buffer = new byte[4096];
 				int bytesRead;
@@ -120,12 +112,11 @@ public class FtpClient {
 				while ((bytesRead = dataDis.read(buffer)) != -1) {
 					fos.write(buffer, 0, bytesRead);
 				}
-			} catch (Exception e) {
-				System.err.println(e.getMessage());
 			}
 			System.out.println(br.readLine());
 		} else {
 			System.out.println("An error occurred while processing the request.");
 		}
 	}
+
 }

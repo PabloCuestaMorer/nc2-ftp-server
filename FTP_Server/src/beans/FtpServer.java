@@ -1,14 +1,19 @@
 package beans;
 
-import java.io.*;
-import java.net.*;
-
-import java.io.*;
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class FtpServer {
 
 	private static final int CONTROL_PORT = 21;
+	private static final int DATA_PORT = 20;
 
 	public static void main(String[] args) throws IOException {
 		ServerSocket controlSocket = new ServerSocket(CONTROL_PORT);
@@ -69,7 +74,8 @@ public class FtpServer {
 		if (directory.exists() && directory.isDirectory()) {
 			dos.writeBytes("150 File status okay; about to open data connection.\r\n");
 
-			try (Socket dataClientSocket = new Socket(dataClientAddress, dataClientPort);
+			try (ServerSocket serverDataSocket = new ServerSocket(DATA_PORT);
+					Socket dataClientSocket = serverDataSocket.accept();
 					DataOutputStream dataDos = new DataOutputStream(dataClientSocket.getOutputStream())) {
 
 				String[] fileNames = directory.list();
@@ -98,7 +104,8 @@ public class FtpServer {
 		if (file.exists() && file.isFile()) {
 			dos.writeBytes("150 File status okay; about to open data connection.\r\n");
 
-			try (Socket dataClientSocket = new Socket(dataClientAddress, dataClientPort);
+			try (ServerSocket serverDataSocket = new ServerSocket(DATA_PORT);
+					Socket dataClientSocket = serverDataSocket.accept();
 					DataOutputStream dataDos = new DataOutputStream(dataClientSocket.getOutputStream());
 					FileInputStream fis = new FileInputStream(file)) {
 
