@@ -37,8 +37,11 @@ public class FtpClient {
 
 			switch (choice) {
 			case "1":
+				System.out.print("Enter the directory path (leave empty for the current directory): ");
+				String dirPath = consoleReader.readLine();
+				dirPath = dirPath.trim().isEmpty() ? "." : dirPath;
 				if (sendPortCommand(dos, br)) {
-					listFiles(dos, br, ".");
+					listFiles(dos, br, dirPath);
 				} else {
 					System.out.println("An error occurred while processing the PORT command.");
 				}
@@ -93,9 +96,12 @@ public class FtpClient {
 							new InputStreamReader(dataClientSocket.getInputStream()))) {
 
 				String fileName;
+				System.out.println("\nListing files in directory: " + pathname);
+				System.out.println("--------------------------------------------------");
 				while ((fileName = dataBr.readLine()) != null) {
 					System.out.println(fileName);
 				}
+				System.out.println("--------------------------------------------------");
 			}
 			System.out.println(br.readLine());
 		} else {
