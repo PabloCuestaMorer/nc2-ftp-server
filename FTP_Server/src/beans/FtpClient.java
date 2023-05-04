@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 
 public class FtpClient {
@@ -67,11 +68,18 @@ public class FtpClient {
 	private static boolean sendPortCommand(DataOutputStream dos, BufferedReader br) throws IOException {
 		InetAddress localAddress = InetAddress.getLocalHost();
 		byte[] addressBytes = localAddress.getAddress();
+		int availablePort = findAvailablePort();
 		String hostPort = String.format("%d,%d,%d,%d,%d,%d", addressBytes[0] & 0xFF, addressBytes[1] & 0xFF,
-				addressBytes[2] & 0xFF, addressBytes[3] & 0xFF, DATA_PORT / 256, DATA_PORT % 256);
+				addressBytes[2] & 0xFF, addressBytes[3] & 0xFF, availablePort / 256, availablePort % 256);
 		dos.writeBytes("PORT " + hostPort + "\r\n");
 		String response = br.readLine();
 		return response.startsWith("200");
+	}
+
+	private static int findAvailablePort() throws IOException {
+		try (ServerSocket serverSocket = new ServerSocket(0)) {
+			return serverSocket.getLocalPort();
+		}
 	}
 
 	private static void listFiles(DataOutputStream dos, BufferedReader br, String pathname) throws IOException {
