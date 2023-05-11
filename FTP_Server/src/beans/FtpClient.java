@@ -3,6 +3,10 @@ package beans;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+//NEW
+import java.io.File;
+//
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -31,7 +35,9 @@ public class FtpClient {
 			System.out.println("Select an action to perform:");
 			System.out.println("1. List files");
 			System.out.println("2. Download a file");
-			System.out.println("3. Exit");
+			//**NUEVO**
+			System.out.println("3. Upload a file");
+			System.out.println("4. Exit");
 			System.out.print("Enter the number of your choice: ");
 			String choice = consoleReader.readLine();
 
@@ -57,7 +63,17 @@ public class FtpClient {
 					System.out.println("An error occurred while processing the PORT command.");
 				}
 				break;
+			//**NUEVO**
 			case "3":
+			    System.out.print("Enter the path of the file to upload: ");
+			    String uploadPath = consoleReader.readLine();
+			    if (sendPortCommand(dos, br)) {
+			        uploadFile(dos, br, uploadPath);
+			    } else {
+			        System.out.println("An error occurred while processing the PORT command.");
+			    }
+			    break;
+			case "4":
 				exit = true;
 				break;
 			default:
@@ -132,5 +148,37 @@ public class FtpClient {
 			System.out.println("An error occurred while processing the request.");
 		}
 	}
+	
+	//**NUEVO**
+	private static void uploadFile(DataOutputStream dos, BufferedReader br, String sourcePath) throws IOException {
+	    File file = new File(sourcePath);
+	    if (!file.exists()) {
+	        System.out.println("File does not exist.");
+	        return;
+	    }
+
+	    dos.writeBytes("STOR " + file.getName() + "\r\n");
+	    String response = br.readLine();
+	    System.out.println(response);
+
+	    if (response.startsWith("150")) {
+	        try (Socket dataClientSocket = new Socket(SERVER_ADDRESS, DATA_PORT);
+	                FileInputStream fis = new FileInputStream(file);
+	                DataOutputStream dataDos = new DataOutputStream(dataClientSocket.getOutputStream())) {
+
+	            byte[] buffer = new byte[4096];
+	            int bytesRead;
+
+	            while ((bytesRead = fis.read(buffer)) != -1) {
+	                dataDos.write(buffer, 0, bytesRead);
+	            }
+	            dataDos.flush();
+	        }
+	        System.out.println(br.readLine());
+	    } else {
+	        System.out.println("An error occurred while processing the request.");
+	    }
+	}
+
 
 }

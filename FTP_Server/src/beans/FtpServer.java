@@ -1,9 +1,11 @@
 package beans;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -58,6 +60,16 @@ public class FtpServer {
 					dos.writeBytes("501 Syntax error in parameters or arguments.\r\n");
 				}
 				break;
+				//**NUEVO**
+			case "STOR":
+			    if (commandParts.length < 2) {
+			        dos.writeBytes("501 Syntax error in parameters or arguments.\r\n");
+			        return;
+			    }
+			    String filePath = commandParts[1];
+			    receiveFile(dos, filePath, dataClientAddress, dataClientPort);
+			    break;
+
 
 			default:
 				dos.writeBytes("500 Invalid command.\r\n");
@@ -131,4 +143,27 @@ public class FtpServer {
 		}
 		return null;
 	}
+	//**NUEVO**
+	private static void receiveFile(DataOutputStream dos, String filePath, InetAddress dataClientAddress,
+	        int dataClientPort) throws IOException {
+
+	    dos.writeBytes("150 File status okay; about to open data connection.\r\n");
+
+	    try (ServerSocket serverDataSocket = new ServerSocket(DATA_PORT);
+	            Socket dataClientSocket = serverDataSocket.accept();
+	            DataInputStream dataDis = new DataInputStream(dataClientSocket.getInputStream());
+	            FileOutputStream fos = new FileOutputStream(filePath)) {
+
+	        byte[] buffer = new byte[4096];
+	        int bytesRead;
+
+	        while ((bytesRead = dataDis.read(buffer)) != -1) {
+	            fos.write(buffer, 0, bytesRead);
+	        }
+	    } catch (IOException e) {
+	        dos.writeBytes("425 Can't open data connection.\r\n");
+	    }
+	    dos.writeBytes("226 Closing data connection. Requested file action successful.\r\n");
+	}
+
 }
