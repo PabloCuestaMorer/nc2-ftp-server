@@ -1,3 +1,4 @@
+
 package beans;
 
 import java.io.BufferedReader;
@@ -21,63 +22,68 @@ public class FtpServer {
 		ServerSocket controlSocket = new ServerSocket(CONTROL_PORT);
 		System.out.println("FTP Server started on port " + CONTROL_PORT);
 
-		Socket clientSocket = controlSocket.accept();
-		System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
-
-		DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream());
-		BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-
-		dos.writeBytes("220 Service ready for new user.\r\n");
-
-		InetAddress dataClientAddress = null;
-		int dataClientPort = -1;
-
+		//**new**
 		while (true) {
-			String command = br.readLine();
-			if (command == null) {
-				break;
-			}
+			Socket clientSocket = controlSocket.accept();
+			System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
 
-			String[] commandParts = command.split(" ");
-			switch (commandParts[0].toUpperCase()) {
-			case "LIST":
-				String pathname = commandParts.length > 1 ? commandParts[1] : ".";
-				sendFileList(dos, pathname, dataClientAddress, dataClientPort);
-				break;
+			DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream());
+			BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-			case "RETR":
-				sendFile(dos, commandParts, dataClientAddress, dataClientPort);
-				break;
+			dos.writeBytes("220 Service ready for new user.\r\n");
 
-			case "PORT":
-				String[] hostPort = parseHostAndPort(commandParts[1]);
-				if (hostPort != null) {
-					dataClientAddress = InetAddress
-							.getByName(String.join(".", hostPort[0], hostPort[1], hostPort[2], hostPort[3]));
-					dataClientPort = Integer.parseInt(hostPort[4]) * 256 + Integer.parseInt(hostPort[5]);
-					dos.writeBytes("200 Command okay.\r\n");
-				} else {
-					dos.writeBytes("501 Syntax error in parameters or arguments.\r\n");
+			InetAddress dataClientAddress = null;
+			int dataClientPort = -1;
+
+			while (true) {
+				String command = br.readLine();
+				if (command == null) {
+					break;
 				}
-				break;
-				//**NUEVO**
-			case "STOR":
-			    if (commandParts.length < 2) {
-			        dos.writeBytes("501 Syntax error in parameters or arguments.\r\n");
-			        return;
-			    }
-			    String filePath = commandParts[1];
-			    receiveFile(dos, filePath, dataClientAddress, dataClientPort);
-			    break;
 
+				String[] commandParts = command.split(" ");
+				switch (commandParts[0].toUpperCase()) {
+				case "LIST":
+					String pathname = commandParts.length > 1 ? commandParts[1] : ".";
+					sendFileList(dos, pathname, dataClientAddress, dataClientPort);
+					break;
 
-			default:
-				dos.writeBytes("500 Invalid command.\r\n");
+				case "RETR":
+					sendFile(dos, commandParts, dataClientAddress, dataClientPort);
+					break;
+
+				case "PORT":
+					String[] hostPort = parseHostAndPort(commandParts[1]);
+					if (hostPort != null) {
+						dataClientAddress = InetAddress
+								.getByName(String.join(".", hostPort[0], hostPort[1], hostPort[2], hostPort[3]));
+						dataClientPort = Integer.parseInt(hostPort[4]) * 256 + Integer.parseInt(hostPort[5]);
+						dos.writeBytes("200 Command okay.\r\n");
+					} else {
+						dos.writeBytes("501 Syntax error in parameters or arguments.\r\n");
+					}
+					break;
+				// **NUEVO**
+				case "STOR":
+					if (commandParts.length < 2) {
+						dos.writeBytes("501 Syntax error in parameters or arguments.\r\n");
+						return;
+					}
+					String filePath = commandParts[1];
+					receiveFile(dos, filePath, dataClientAddress, dataClientPort);
+					break;
+
+				default:
+					dos.writeBytes("500 Invalid command.\r\n");
+				}
 			}
-		}
 
-		clientSocket.close();
-		controlSocket.close();
+			clientSocket.close();
+			System.out.println("Client disconnected. Waiting for new connection...\n");
+
+		}
+		// controlSocket.close(); This line is not needed as the server is always listening
+	
 	}
 
 	private static void sendFileList(DataOutputStream dos, String pathname, InetAddress dataClientAddress,
@@ -143,27 +149,28 @@ public class FtpServer {
 		}
 		return null;
 	}
-	//**NUEVO**
+
+	// **NUEVO**
 	private static void receiveFile(DataOutputStream dos, String filePath, InetAddress dataClientAddress,
-	        int dataClientPort) throws IOException {
+			int dataClientPort) throws IOException {
 
-	    dos.writeBytes("150 File status okay; about to open data connection.\r\n");
+		dos.writeBytes("150 File status okay; about to open data connection.\r\n");
 
-	    try (ServerSocket serverDataSocket = new ServerSocket(DATA_PORT);
-	            Socket dataClientSocket = serverDataSocket.accept();
-	            DataInputStream dataDis = new DataInputStream(dataClientSocket.getInputStream());
-	            FileOutputStream fos = new FileOutputStream(filePath)) {
+		try (ServerSocket serverDataSocket = new ServerSocket(DATA_PORT);
+				Socket dataClientSocket = serverDataSocket.accept();
+				DataInputStream dataDis = new DataInputStream(dataClientSocket.getInputStream());
+				FileOutputStream fos = new FileOutputStream(filePath)) {
 
-	        byte[] buffer = new byte[4096];
-	        int bytesRead;
+			byte[] buffer = new byte[4096];
+			int bytesRead;
 
-	        while ((bytesRead = dataDis.read(buffer)) != -1) {
-	            fos.write(buffer, 0, bytesRead);
-	        }
-	    } catch (IOException e) {
-	        dos.writeBytes("425 Can't open data connection.\r\n");
-	    }
-	    dos.writeBytes("226 Closing data connection. Requested file action successful.\r\n");
+			while ((bytesRead = dataDis.read(buffer)) != -1) {
+				fos.write(buffer, 0, bytesRead);
+			}
+		} catch (IOException e) {
+			dos.writeBytes("425 Can't open data connection.\r\n");
+		}
+		dos.writeBytes("226 Closing data connection. Requested file action successful.\r\n");
 	}
 
 }
