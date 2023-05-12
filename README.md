@@ -10,4 +10,4 @@ Repository for the group work of the Networks and Communications II course 👨�
 
 ---
 
-*_By Pablo Cuesta Morer_* 🙋🏼‍♂️
+*_By Pablo Cuesta Morer and Don Antonio Sediles_* 🙋🏼‍♂️
