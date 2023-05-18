@@ -12,17 +12,33 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 
 public class FtpServer {
 
+	private static HashMap<String, String> users = new HashMap<>(); // store users and passwords
 	private static final int CONTROL_PORT = 21;
 	private static final int DATA_PORT = 20;
+
+	static { // Add users to the HashMap
+		users.put("Pablo", "1234");
+		users.put("user2", "password2");
+	}
+
+	private static boolean checkUserPassword(String user, String password) {
+		String validPassword = users.get(user);
+		if (validPassword != null && validPassword.equals(password)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	public static void main(String[] args) throws IOException {
 		ServerSocket controlSocket = new ServerSocket(CONTROL_PORT);
 		System.out.println("FTP Server started on port " + CONTROL_PORT);
 
-		//**new**
+		// **new**
 		while (true) {
 			Socket clientSocket = controlSocket.accept();
 			System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
@@ -30,7 +46,8 @@ public class FtpServer {
 			DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream());
 			BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-			dos.writeBytes("220 Service ready for new user.\r\n");
+			dos.writeBytes("220 Service ready for new user. Enter USER <username> and PASS <password> to log in.\r\n");
+			String user = null;
 
 			InetAddress dataClientAddress = null;
 			int dataClientPort = -1;
@@ -73,6 +90,23 @@ public class FtpServer {
 					receiveFile(dos, filePath, dataClientAddress, dataClientPort);
 					break;
 
+				case "USER":
+					user = commandParts[1];
+					dos.writeBytes("331 User name okay, need password.\r\n");
+					break;
+
+				case "PASS":
+					if (user == null) {
+						dos.writeBytes("503 Bad sequence of commands.\r\n");
+					} else if (!checkUserPassword(user, commandParts[1])) {
+						dos.writeBytes("530 Not logged in.\r\n");
+					} else {
+						dos.writeBytes("230 User logged in, proceed.\r\n");
+						user = null; // Reset for next session
+						// Exit this loop and proceed to your original command processing loop
+						break;
+					}
+					break;
 				default:
 					dos.writeBytes("500 Invalid command.\r\n");
 				}
@@ -82,8 +116,9 @@ public class FtpServer {
 			System.out.println("Client disconnected. Waiting for new connection...\n");
 
 		}
-		// controlSocket.close(); This line is not needed as the server is always listening
-	
+		// controlSocket.close(); This line is not needed as the server is always
+		// listening
+
 	}
 
 	private static void sendFileList(DataOutputStream dos, String pathname, InetAddress dataClientAddress,

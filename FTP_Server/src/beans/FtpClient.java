@@ -13,14 +13,29 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.InputMismatchException;
+import java.util.Scanner;
 
 public class FtpClient {
 
-	private static final String SERVER_ADDRESS = "127.0.0.1";
-	private static final int CONTROL_PORT = 21;
+	private static String SERVER_ADDRESS = "127.0.0.1";
+	private static int CONTROL_PORT = 21;
 	private static final int DATA_PORT = 20;
 
 	public static void main(String[] args) throws IOException {
+
+		Scanner scanner = new Scanner(System.in);
+
+		System.out.println("Enter Server IP: ");
+		SERVER_ADDRESS = scanner.nextLine();
+
+		System.out.println("Enter Control Port: ");
+		try {
+			CONTROL_PORT = scanner.nextInt();
+		} catch (InputMismatchException e) {
+			System.out.println("Invalid control port number. Using default port: " + CONTROL_PORT);
+		}
+
 		Socket controlSocket = new Socket(SERVER_ADDRESS, CONTROL_PORT);
 		System.out.println("Connected to FTP Server at " + SERVER_ADDRESS + ":" + CONTROL_PORT);
 
@@ -31,11 +46,37 @@ public class FtpClient {
 		BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
 		boolean exit = false;
 
+		// Loop until correct username and password are provided
+		String serverResponse;
+		boolean loggedIn = false;
+		do {
+			System.out.print("Enter your username: ");
+			String username = consoleReader.readLine();
+			dos.writeBytes("USER " + username + "\r\n");
+
+			serverResponse = br.readLine();
+			if (serverResponse.startsWith("331")) {
+				System.out.print("Enter your password: ");
+				String password = consoleReader.readLine();
+				dos.writeBytes("PASS " + password + "\r\n");
+
+				serverResponse = br.readLine();
+				if (serverResponse.startsWith("230")) {
+					System.out.println("Login successful!");
+					loggedIn = true;
+				} else {
+					System.out.println("Login failed. Please try again...");
+				}
+			} else {
+				System.out.println("Login failed. Please try again...");
+			}
+		} while (!loggedIn);
+
 		while (!exit) {
 			System.out.println("Select an action to perform:");
 			System.out.println("1. List files");
 			System.out.println("2. Download a file");
-			//**NUEVO**
+			// **NUEVO**
 			System.out.println("3. Upload a file");
 			System.out.println("4. Exit");
 			System.out.print("Enter the number of your choice: ");
@@ -63,16 +104,16 @@ public class FtpClient {
 					System.out.println("An error occurred while processing the PORT command.");
 				}
 				break;
-			//**NUEVO**
+			// **NUEVO**
 			case "3":
-			    System.out.print("Enter the path of the file to upload: ");
-			    String uploadPath = consoleReader.readLine();
-			    if (sendPortCommand(dos, br)) {
-			        uploadFile(dos, br, uploadPath);
-			    } else {
-			        System.out.println("An error occurred while processing the PORT command.");
-			    }
-			    break;
+				System.out.print("Enter the path of the file to upload: ");
+				String uploadPath = consoleReader.readLine();
+				if (sendPortCommand(dos, br)) {
+					uploadFile(dos, br, uploadPath);
+				} else {
+					System.out.println("An error occurred while processing the PORT command.");
+				}
+				break;
 			case "4":
 				exit = true;
 				break;
@@ -82,6 +123,7 @@ public class FtpClient {
 		}
 
 		controlSocket.close();
+		scanner.close();
 	}
 
 	private static boolean sendPortCommand(DataOutputStream dos, BufferedReader br) throws IOException {
@@ -148,37 +190,36 @@ public class FtpClient {
 			System.out.println("An error occurred while processing the request.");
 		}
 	}
-	
-	//**NUEVO**
+
+	// **NUEVO**
 	private static void uploadFile(DataOutputStream dos, BufferedReader br, String sourcePath) throws IOException {
-	    File file = new File(sourcePath);
-	    if (!file.exists()) {
-	        System.out.println("File does not exist.");
-	        return;
-	    }
+		File file = new File(sourcePath);
+		if (!file.exists()) {
+			System.out.println("File does not exist.");
+			return;
+		}
 
-	    dos.writeBytes("STOR " + file.getName() + "\r\n");
-	    String response = br.readLine();
-	    System.out.println(response);
+		dos.writeBytes("STOR " + file.getName() + "\r\n");
+		String response = br.readLine();
+		System.out.println(response);
 
-	    if (response.startsWith("150")) {
-	        try (Socket dataClientSocket = new Socket(SERVER_ADDRESS, DATA_PORT);
-	                FileInputStream fis = new FileInputStream(file);
-	                DataOutputStream dataDos = new DataOutputStream(dataClientSocket.getOutputStream())) {
+		if (response.startsWith("150")) {
+			try (Socket dataClientSocket = new Socket(SERVER_ADDRESS, DATA_PORT);
+					FileInputStream fis = new FileInputStream(file);
+					DataOutputStream dataDos = new DataOutputStream(dataClientSocket.getOutputStream())) {
 
-	            byte[] buffer = new byte[4096];
-	            int bytesRead;
+				byte[] buffer = new byte[4096];
+				int bytesRead;
 
-	            while ((bytesRead = fis.read(buffer)) != -1) {
-	                dataDos.write(buffer, 0, bytesRead);
-	            }
-	            dataDos.flush();
-	        }
-	        System.out.println(br.readLine());
-	    } else {
-	        System.out.println("An error occurred while processing the request.");
-	    }
+				while ((bytesRead = fis.read(buffer)) != -1) {
+					dataDos.write(buffer, 0, bytesRead);
+				}
+				dataDos.flush();
+			}
+			System.out.println(br.readLine());
+		} else {
+			System.out.println("An error occurred while processing the request.");
+		}
 	}
-
 
 }
