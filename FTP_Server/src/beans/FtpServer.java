@@ -22,7 +22,8 @@ public class FtpServer {
 
 	static { // Add users to the HashMap
 		users.put("Pablo", "1234");
-		users.put("user2", "password2");
+		users.put("Antonio", "Desi");
+		users.put("Miguel", "4321");
 	}
 
 	private static boolean checkUserPassword(String user, String password) {
