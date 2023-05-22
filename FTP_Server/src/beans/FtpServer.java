@@ -1,49 +1,53 @@
-
 package beans;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.HashMap;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 public class FtpServer {
 
-	private static HashMap<String, String> users = new HashMap<>(); // store users and passwords
+	private static HashMap<String, String> users = new HashMap<>();
 	private static final int CONTROL_PORT = 21;
-	private static final int DATA_PORT = 20;
 
-	static { // Add users to the HashMap
-		users.put("Pablo", "1234");
-		users.put("Miguel", "pablo");
-		users.put("Antonio", "Desi");
-	}
-
-	private static boolean checkUserPassword(String user, String password) {
-		String validPassword = users.get(user);
-		if (validPassword != null && validPassword.equals(password)) {
-			return true;
-		} else {
-			return false;
-		}
+	static {
+		getUsers().put("Pablo", "1234");
+		getUsers().put("user2", "password2");
 	}
 
 	public static void main(String[] args) throws IOException {
 		ServerSocket controlSocket = new ServerSocket(CONTROL_PORT);
 		System.out.println("FTP Server started on port " + CONTROL_PORT);
 
-		// **new**
 		while (true) {
 			Socket clientSocket = controlSocket.accept();
 			System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
 
+			// Start a new thread to handle the client connection
+			new Thread(new FtpClientHandler(clientSocket)).start();
+		}
+	}
+
+	public static HashMap<String, String> getUsers() {
+		return users;
+	}
+
+	public static void setUsers(HashMap<String, String> users) {
+		FtpServer.users = users;
+	}
+}
+
+class FtpClientHandler implements Runnable {
+
+	private Socket clientSocket;
+	private static final int DATA_PORT = 20;
+
+	public FtpClientHandler(Socket clientSocket) {
+		this.clientSocket = clientSocket;
+	}
+
+	@Override
+	public void run() {
+		try {
 			DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream());
 			BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
@@ -53,6 +57,7 @@ public class FtpServer {
 			InetAddress dataClientAddress = null;
 			int dataClientPort = -1;
 
+			// Now, instead of a while (true) loop, we'll loop until the client disconnects
 			while (true) {
 				String command = br.readLine();
 				if (command == null) {
@@ -108,7 +113,7 @@ public class FtpServer {
 						break;
 					}
 					break;
-				
+
 				default:
 					dos.writeBytes("500 Invalid command.\r\n");
 				}
@@ -116,11 +121,14 @@ public class FtpServer {
 
 			clientSocket.close();
 			System.out.println("Client disconnected. Waiting for new connection...\n");
-
+		} catch (IOException e) {
+			System.err.println("Client disconnected unexpectedly: " + e.getMessage());
 		}
-		// controlSocket.close(); This line is not needed as the server is always
-		// listening
+	}
 
+	private static boolean checkUserPassword(String user, String password) {
+		String validPassword = FtpServer.getUsers().get(user);
+		return validPassword != null && validPassword.equals(password);
 	}
 
 	private static void sendFileList(DataOutputStream dos, String pathname, InetAddress dataClientAddress,
