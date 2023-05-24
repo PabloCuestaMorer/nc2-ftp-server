@@ -12,6 +12,7 @@ public class FtpServer {
 	static {
 		getUsers().put("Pablo", "1234");
 		getUsers().put("user2", "password2");
+		getUsers().put("Antonio", "desi");
 	}
 
 	public static void main(String[] args) throws IOException {
