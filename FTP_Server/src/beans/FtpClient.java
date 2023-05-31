@@ -76,7 +76,6 @@ public class FtpClient {
 			System.out.println("Select an action to perform:");
 			System.out.println("1. List files");
 			System.out.println("2. Download a file");
-			// **NUEVO**
 			System.out.println("3. Upload a file");
 			System.out.println("4. Exit");
 			System.out.print("Enter the number of your choice: ");
@@ -104,7 +103,6 @@ public class FtpClient {
 					System.out.println("An error occurred while processing the PORT command.");
 				}
 				break;
-			// **NUEVO**
 			case "3":
 				System.out.print("Enter the path of the file to upload: ");
 				String uploadPath = consoleReader.readLine();
@@ -191,7 +189,6 @@ public class FtpClient {
 		}
 	}
 
-	// **NUEVO**
 	private static void uploadFile(DataOutputStream dos, BufferedReader br, String sourcePath) throws IOException {
 		File file = new File(sourcePath);
 		if (!file.exists()) {

@@ -87,7 +87,6 @@ class FtpClientHandler implements Runnable {
 						dos.writeBytes("501 Syntax error in parameters or arguments.\r\n");
 					}
 					break;
-				// **NUEVO**
 				case "STOR":
 					if (commandParts.length < 2) {
 						dos.writeBytes("501 Syntax error in parameters or arguments.\r\n");
@@ -195,8 +194,7 @@ class FtpClientHandler implements Runnable {
 		}
 		return null;
 	}
-
-	// **NUEVO**
+	
 	private static void receiveFile(DataOutputStream dos, String filePath, InetAddress dataClientAddress,
 			int dataClientPort) throws IOException {
 
